@@ -1,0 +1,24 @@
+Package: TSRtracker
+Title: Timber Supply Review Tracker
+Version: 0.0.0.9000
+Authors@R: 
+    person("Kyle", "Lochhead", , "Kyle.Lochhead@gov.bc.ca", role = c("aut", "cre"))
+Description: An application to track timber supply review projects by the
+    Forest Analysis and Inventory Branch.
+License: Apache License (>= 2)
+URL: https://github.com/bcgov/TSRtracker
+BugReports: https://github.com/bcgov/TSRtracker/issues
+Imports: 
+    config,
+    golem,
+    leaflet,
+    shiny,
+    shinycssloaders,
+    shinydashboard,
+    xml2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
