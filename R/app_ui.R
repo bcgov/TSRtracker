@@ -48,13 +48,7 @@ app_ui <- function(request) {
                            #fisher_map_control {background-color: rgba(192,192,192,0.2);}'
           )
         )
-       ),
-       tabItems(
-         tabItem(
-           tabName = "dashboard",
-           mod_page_dashboard_ui("page_dashboard")
-         ),
-      )
+       )
     )
   ),
   tags$footer(
