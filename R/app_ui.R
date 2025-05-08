@@ -6,6 +6,7 @@
 #' @import leaflet
 #' @import shinydashboard
 #' @import shinycssloaders
+#' @import ggplot2
 #' @noRd
 app_ui <- function(request) {
   tagList(
@@ -31,24 +32,39 @@ app_ui <- function(request) {
         ),
         #introjsUI(),
         sidebarMenu(
-          menuItem(
-            "Dashboard",
-            tabName = "dashboard",
-            icon = icon("tachometer-alt")
-          ),
-          menuItem("Input", tabName = "user_inputs", icon = icon("cogs")),
-          menuItem("Rationalization", tabName = "rationalization", icon = icon("balance-scale")),
-          menuItem("Generate Report", tabName = "report", icon = icon("file-pdf"))
+          menuItem( "Dashboard", tabName = "dashboard",icon = icon("tachometer-alt")),
+          add_class(menuItem("Inputs", tabName = "user_inputs", icon = icon("cogs")), "user_inputs"),
+          add_class(menuItem("Rationalization", tabName = "rationalization", icon = icon("balance-scale")),  "rationalization"),
+          add_class(menuItem("Generate Report", tabName = "report", icon = icon("file-pdf")), "report")
         )
       ),
       dashboardBody(
+        #shinyjs::useShinyjs(),
         tags$head(tags$style(
           HTML(
             '.small-box.bg-blue {background-color: rgba(192,192,192,0.2) !important; color: #000000 !important; } .small_icon_test { font-size: 50px; } .info-box {min-height: 75px;} .info-box-icon {height: 75px; line-height: 75px;} .info-box-content {padding-top: 0px; padding-bottom: 0px; font-size: 110%;}
                            #fisher_map_control {background-color: rgba(192,192,192,0.2);}'
           )
+        )),
+        tabItems(
+          tabItem(
+            tabName = "dashboard",
+            mod_page_dashboard_ui("page_dashboard")
+          ),
+          tabItem(
+            tabName = "rationalization",
+            mod_page_rationalization_ui("page_rationalization")
+          ),
+          tabItem(
+            tabName = "user_inputs",
+            mod_page_user_inputs_ui("page_user_inputs")
+          ),
+          tabItem(
+            tabName = "report",
+            mod_page_report_ui("page_report")
+          )
         )
-       )
+
     )
   ),
   tags$footer(

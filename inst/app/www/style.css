@@ -31,6 +31,10 @@ body {
   color: #313132;
 }
 
+.small-box h3 {
+    background-color: white;
+}
+
 h1, h2, h3, h4, h5, h6 {
   color: #003366;
 }

@@ -18,17 +18,24 @@
 ## install.packages('attachment') # if needed.
 attachment::att_amend_desc()
 
+
 ## Add modules ----
 ## Create a module infrastructure in R/
 golem::add_module(name = "name_of_module1", with_test = TRUE) # Name of the module
 golem::add_module(name = "name_of_module2", with_test = TRUE) # Name of the module
 
 golem::add_module(name = "mod_page_dashboard", with_test = TRUE)
+golem::add_module(name = "mod_page_user_inputs", with_test = TRUE)
+golem::add_module(name = "mod_page_rationalization", with_test = TRUE)
+golem::add_module(name = "mod_page_report", with_test = TRUE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
 golem::add_fct("helpers", with_test = TRUE)
 golem::add_utils("helpers", with_test = TRUE)
+
+golem::add_utils("TSRtracker_utils_ui", with_test = TRUE)
+golem::add_utils("TSRtracker_utils_server", with_test = TRUE)
 
 ## External resources
 ## Creates .js and .css files at inst/app/www
