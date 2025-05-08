@@ -141,6 +141,10 @@ mod_page_dashboard_server <- function(id, reportList){
       bbox<-st_bbox(selectAOI()[[2]])
       leafletProxy('map')  %>%
         clearGroup('TSR') %>%
+        setMaxBounds(lng1 = -142,
+                     lat1 = 46,
+                     lng2 = -112,
+                     lat2 =  62) %>%
         flyToBounds(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]]) %>%
         addGeoJSONChoropleth(selectAOI()[[1]], group = 'TSR',
           valueProperty = "past_due",
