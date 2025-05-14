@@ -30,5 +30,8 @@ ADD . /build_zone
 WORKDIR /build_zone
 RUN R -e 'remotes::install_local(upgrade="never")'
 RUN rm -rf /build_zone
+
+COPY ./ /build_zone
+
 EXPOSE 3838
-CMD  ["R", "-e", "options('shiny.port'=3838,shiny.host='0.0.0.0');library(TSRtracker);TSRtracker::run_app()"]
+CMD  ["R", "-e", "setwd('/build_zone'); options('shiny.port'=3838,shiny.host='0.0.0.0');library(TSRtracker);TSRtracker::run_app()"]
