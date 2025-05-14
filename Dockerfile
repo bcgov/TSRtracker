@@ -1,5 +1,5 @@
 FROM rocker/verse:4.4.2
-RUN apt-get update && apt-get install -y  gdal-bin libcurl4-openssl-dev libgdal-dev libgeos-dev libicu-dev libnode-dev libpng-dev libproj-dev libsqlite3-dev libssl-dev libudunits2-dev libx11-dev libxml2-dev make pandoc zlib1g-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y  gdal-bin libcurl4-openssl-dev libgdal-dev libgeos-dev libicu-dev libnetcdf-dev libnode-dev libpng-dev libproj-dev libsqlite3-dev libssl-dev libudunits2-dev libx11-dev libxml2-dev make pandoc zlib1g-dev && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /usr/local/lib/R/etc/ /usr/lib/R/etc/
 RUN echo "options(repos = c(CRAN = 'https://cran.rstudio.com/'), download.file.method = 'libcurl', Ncpus = 4)" | tee /usr/local/lib/R/etc/Rprofile.site | tee /usr/lib/R/etc/Rprofile.site
 RUN R -e 'install.packages("remotes")'
