@@ -40,6 +40,7 @@ app_server <- function(input, output, session) {
       conn = conn
     )
 
+    dbDisconnect(conn)
     list(rationalization = data.table(data.rationalization),
          schedule = data.table(data.schedule)
          )

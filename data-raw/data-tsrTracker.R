@@ -20,9 +20,13 @@ data.tsrTracker<-data.tsrTracker %>%
 #remove projection
 data.tsrTracker <- sf::st_transform(data.tsrTracker, crs = 4326)
 
+#simplify
+geojson.tsrTracker<-rmapshaper::ms_simplify(geojsonsf::sf_geojson(data.tsrTracker))
+
 #append
+data.tsrTracker <-geojsonsf::geojson_sf(geojson.tsrTracker)
 usethis::use_data(data.tsrTracker, overwrite = TRUE)
 
-geojson.tsrTracker<-rmapshaper::ms_simplify(geojsonsf::sf_geojson(data.tsrTracker))
-usethis::use_data(geojson.tsrTracker, overwrite = TRUE)
+
+
 

@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^\.dockerignore$
 ^data-raw$
+^Dockerfile$

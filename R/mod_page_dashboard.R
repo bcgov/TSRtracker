@@ -13,17 +13,19 @@
 #' @importFrom geojsonsf sf_geojson
 #' @import sf
 #' @import rmapshaper
-#' @importFrom forcats fct_rev fct_inorder
+#' @import scales date_format
+#' @import xfun
 #'
 mod_page_dashboard_ui <- function(id) {
   ns <- NS(id)
+  userName <- Sys.getenv("SHINYPROXY_USERNAME")
 
   available_aois <- getAvailableStudyAreas()
   tagList(
     fluidRow(
-      valueBoxOutput(ns("in_progress")),
-      valueBoxOutput(ns("past_due")),
-      valueBoxOutput(ns("upcoming"))
+      valueBoxOutput(ns("num_in_progress")),
+      valueBoxOutput(ns("num_past_due")),
+      valueBoxOutput(ns("num_upcoming"))
     ),
     sidebarLayout(
       sidebarPanel(width = 2, position = "left",
@@ -49,7 +51,7 @@ mod_page_dashboard_ui <- function(id) {
           ),
           tabPanel(title = "Gantt",
               fluidRow(
-                plotOutput(ns("plotTasks"))
+                plotOutput(ns("plotGantt"))
               )
           )
         )
@@ -66,23 +68,32 @@ mod_page_dashboard_ui <- function(id) {
 mod_page_dashboard_server <- function(id, reportList){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
+    lastClickedAOI<- NULL
 
-    output$in_progress <-renderValueBox({
-      valueBoxSpark(nrow(reportList()[["rationalization"]][in_progress == 'Y',]), icon = icon("bars-progress") , subtitle = "In Progress", width = 2)
+    output$num_in_progress <-renderValueBox({
+      valueBoxSpark(nrow(data.table(selectAOI())[in_progress=='Y',]), icon = icon("bars-progress") , subtitle = "In Progress", width = 2)
     })
-    output$past_due <- renderValueBox({
-      valueBoxSpark(nrow(reportList()[["rationalization"]][past_due < 0,]), icon = icon("thumbs-down"), subtitle = "Past Due", width =2)
+    output$num_past_due <- renderValueBox({
+      valueBoxSpark(nrow(data.table(selectAOI())[past_due <0,]), icon = icon("thumbs-down"), subtitle = "Past Due", width =2)
     })
-    output$upcoming <- renderValueBox({
-      valueBoxSpark(nrow(reportList()[["rationalization"]][tsr_fn2025 == 'Y', ]), icon = icon("calendar"), subtitle = "Upcoming", width =2)
+    output$num_upcoming <- renderValueBox({
+      valueBoxSpark(nrow(data.table(selectAOI())[in_progress=='N',]), icon = icon("calendar"), subtitle = "Upcoming", width =2)
     })
 
     #Based on the radio button aoi_type determine the selection
-    observeEvent(input$aoi_type, {
+    observeEvent(c(input$aoi_type, input$map_shape_click), {
+      browser()
       if(input$aoi_type == 'TSA'){
-        updateSelectizeInput(session,
+        if(any(is.null(input$map_shape_click$id) & is.null(lastClickedAOI),input$map_shape_click$id == lastClickedAOI)){
+          updateSelectizeInput(session,
                              inputId = "selected_aoi",
                              choices = unique(data.tsrTracker[data.tsrTracker$type == 'TSA', ]$aoi))
+        }else{
+          updateSelectizeInput(session,
+                               inputId = "selected_aoi",
+                               choices = input$map_shape_click$id, selected = input$map_shape_click$id)
+          lastClickedAOI <- input$map_shape_click$id
+        }
       }else if (input$aoi_type == 'TFL'){
         updateSelectizeInput(session,
                              inputId = "selected_aoi",
@@ -94,99 +105,122 @@ mod_page_dashboard_server <- function(id, reportList){
       }
     })
 
+
+
+
     #Query the data
     selectAOI <-reactive({
+      #browser()
+      #input$map_shape_click
       data<-merge(data.tsrTracker,reportList()[["rationalization"]], by = c("aoi", "type"))
+
       if(is.null(input$selected_aoi)){
           if(input$aoi_type == 'TSA'){
-            outSf<-data[data$type == 'TSA', ]
+            if(is.null(input$map_shape_click)){
+              outSf<-data[data$type == 'TSA', ]
+            }else{
+              outSf<-data[data$aoi %in% input$map_shape_click$id,]
+            }
           }else if(input$aoi_type == 'TFL'){
-            outSf<-data[data$type == 'TFL', ]
+            if(is.null(input$map_shape_click)){
+              outSf<-data[data$type == 'TFL', ]
+            }else{
+              outSf<-data[data$aoi %in% input$map_shape_click$id,]
+            }
+
           }else{
-            outSf<-data
+            if(is.null(input$map_shape_click)){
+              outSf<-data
+            }else{
+              outSf<-data[data$aoi %in% input$map_shape_click$id,]
+            }
           }
         }else{
           outSf<-data[data$aoi %in% input$selected_aoi,]
         }
-      list(geojsonsf::sf_geojson(outSf, simplify=TRUE), outSf)
+      outSf
     })
 
 
     ## render the base leaflet map
     output$map = leaflet::renderLeaflet({
-      leaflet(options = leafletOptions(doubleClickZoom= TRUE)) %>%
-        setView(-121.7476, 53.7267, 3) %>%
+      labels <- sprintf(
+        "<strong>%s</strong><br/>Due in %g months",
+        selectAOI()$aoi, selectAOI()$past_due
+      ) %>% lapply(htmltools::HTML)
+
+      leaflet(data =selectAOI()) %>%
+        setView(-121.7476, 53.7267, 5) %>%
         addTiles() %>%
-        addProviderTiles("Esri.WorldImagery", group ='WorldImagery' ) %>%
-        addWMS(baseUrl = "https://openmaps.gov.bc.ca/geo/ows/",
-               layers = c("pub:WHSE_LEGAL_ADMIN_BOUNDARIES.FNT_TREATY_AREA_SP"),
-               group = 'FN_Treaty_Areas',
-               options = leaflet::WMSTileOptions(
-                 transparent = TRUE,
-                 format = "image/png",
-                 info_format = "text/html",
-                 tiled = FALSE
-               )) %>%
-        addLayersControl(
-          baseGroups = "worldImagery",
-          overlayGroups = c("TSR","FN_Treaty_Areas"),
-          options = layersControlOptions(collapsed = TRUE)) %>%
+        addPolygons(group = 'TSR',
+                    layerId = ~aoi,
+                    fillColor = ~pal(past_due), stroke =TRUE, weight =1,
+                    fillOpacity = ~factop(in_progress),
+                    highlightOptions=highlightOptions(color = 'white', weight =2),
+                    label=labels,
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto")) %>%
+        addLegend( position = "topright",
+                   pal = pal, opacity = 1,
+                   values = c(50,10,0,-10,-50),
+                   title = "Months To Deadline"
+        )%>%
         addScaleBar(position = "topleft")
 
     })
 
 
     # Change the choropleth
-    observe( {
-      bbox<-st_bbox(selectAOI()[[2]])
-      leafletProxy('map')  %>%
+    observeEvent(input$aoi_type, {
+
+      labels <- sprintf(
+        "<strong>%s</strong><br/>Due in %g months",
+        selectAOI()$aoi, selectAOI()$past_due
+      ) %>% lapply(htmltools::HTML)
+
+
+      leafletProxy(mapId = ns('map'), data =selectAOI())  %>%
         clearGroup('TSR') %>%
-        setMaxBounds(lng1 = -142,
-                     lat1 = 46,
-                     lng2 = -112,
-                     lat2 =  62) %>%
-        flyToBounds(bbox[[1]], bbox[[2]], bbox[[3]], bbox[[4]]) %>%
-        addGeoJSONChoropleth(selectAOI()[[1]], group = 'TSR',
-          valueProperty = "past_due",
-          labelProperty = "aoi",
-          popupProperty = propstoHTMLTable(
-            props = c("aoi", "aac_year", "aac", "s8_deadline", "past_due"),
-            table.attrs = list(class = "table table-striped table-bordered"),
-            drop.na = TRUE
-          ),
-          scale = c("red", "green"),
-          steps = 5,
-          color = "white",
-          weight = 2,
-          stroke = TRUE,
-          fillOpacity = 0.5,
-          highlightOptions = highlightOptions(
-            weight = 3, color = "black",
-            fillOpacity = 0.1, opacity = 1,
-            bringToFront = T, sendToBack = T),
-          legendOptions =legendOptions (title = "Months Past Deadline",
-                                        position = 'topright')
-        )
+        addPolygons( layerId =~aoi,
+                     group = 'TSR', stroke =TRUE, weight =1,
+                    fillColor = ~pal(past_due),
+                    fillOpacity = ~factop(in_progress),
+                    highlightOptions= highlightOptions(color = 'white',
+                                                       weight =2,
+                                                       fillOpacity = 0.7,
+                                                       bringToFront = TRUE),
+                    label=labels,
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto")
+                    )
+    })
+
+    observeEvent(input$map_shape_click, {
+      message(paste0("clicked",input$map_shape_click ))
+    } )
+
+    output$plotGantt <- renderPlot({
+      data<-data.table(reportList()[["schedule"]])
+      ggplot(data[!task == 'Milestone',], aes(x = start_date, xend = end_date, y = fct_rev(fct_inorder(task)),
+                                              yend = task, color = project, shape = project)) +
+        geom_segment(linewidth =10) +
+        labs(x = NULL, y = NULL) +
+        geom_point(data=data[task == 'Milestone',], aes(shape = project), size = 4) +
+        scale_shape_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=17,  'Data Preparation'=18,
+                                    'Data Package'=19, 'Analysis'=19,'Discussion Paper'=19, 'Rationale'=17)) +
+        scale_color_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=16,  'Data Preparation'=18,
+                                    'Data Package'=18, 'Analysis'=15, 'Discussion Paper'=19, 'Rationale'=19)) +
+        geom_hline(yintercept=unique(data$task), colour="grey80", linetype="dotted") +
+        geom_hline(yintercept='Milestone', colour="black", linetype="dashed") +
+        theme_gantt() +
+        theme(axis.text.x=element_text(angle=45, hjust=1), legend.title=element_blank())
 
     })
 
-
-    output$plotTasks <- renderPlot({
-      ggplot(reportList()[["schedule"]], aes(x = start, xend = end, y = fct_rev(fct_inorder(task)), yend = task)) +
-        geom_segment(linewidth = 10, color = "#0198f9") +
-        labs(
-          title = "TSR Gantt Chart",
-          x = "Duration",
-          y = "Task"
-        ) +
-        theme_bw() +
-        theme(legend.position = "none") +
-        theme(
-          plot.title = element_text(size = 20),
-          axis.text.x = element_text(size = 12),
-          axis.text.y = element_text(size = 12, angle = 45)
-        )
-    })
   })
 }
 
