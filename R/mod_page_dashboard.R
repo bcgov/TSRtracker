@@ -13,7 +13,7 @@
 #' @importFrom geojsonsf sf_geojson
 #' @import sf
 #' @import rmapshaper
-#' @import scales date_format
+#' @importFrom scales date_format
 #' @import xfun
 #'
 mod_page_dashboard_ui <- function(id) {

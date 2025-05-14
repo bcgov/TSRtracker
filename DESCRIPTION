@@ -15,20 +15,22 @@ Imports:
     config,
     data.table,
     DBI,
-    forcats,
     geojsonsf,
     ggplot2,
     glue,
     golem,
+    htmltools,
     leaflet,
     leaflet.extras,
     leaflet.extras2,
     rmapshaper,
     RPostgreSQL,
+    scales,
     sf,
     shiny,
     shinycssloaders,
     shinydashboard,
+    xfun,
     xml2
 Suggests: 
     testthat (>= 3.0.0)
