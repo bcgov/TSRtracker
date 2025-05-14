@@ -68,7 +68,7 @@ mod_page_dashboard_ui <- function(id) {
 mod_page_dashboard_server <- function(id, reportList){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
-    lastClickedAOI<- NULL
+    lastClickedAOI<-reactiveValues(aoi= NULL)
 
     output$num_in_progress <-renderValueBox({
       valueBoxSpark(nrow(data.table(selectAOI())[in_progress=='Y',]), icon = icon("bars-progress") , subtitle = "In Progress", width = 2)
@@ -82,26 +82,34 @@ mod_page_dashboard_server <- function(id, reportList){
 
     #Based on the radio button aoi_type determine the selection
     observeEvent(c(input$aoi_type, input$map_shape_click), {
-      browser()
+      #browser()
       if(input$aoi_type == 'TSA'){
-        if(any(is.null(input$map_shape_click$id) & is.null(lastClickedAOI),input$map_shape_click$id == lastClickedAOI)){
-          updateSelectizeInput(session,
-                             inputId = "selected_aoi",
-                             choices = unique(data.tsrTracker[data.tsrTracker$type == 'TSA', ]$aoi))
+        if(any(is.null(input$map_shape_click$id) & is.null(lastClickedAOI$aoi),input$map_shape_click$id == lastClickedAOI$aoi)){
+          updateSelectizeInput(session, inputId = "selected_aoi", selected = NULL,
+                               choices = unique(data.tsrTracker[data.tsrTracker$type == 'TSA', ]$aoi))
         }else{
-          updateSelectizeInput(session,
-                               inputId = "selected_aoi",
+          updateSelectizeInput(session, inputId = "selected_aoi",
                                choices = input$map_shape_click$id, selected = input$map_shape_click$id)
-          lastClickedAOI <- input$map_shape_click$id
+          lastClickedAOI$aoi <- input$map_shape_click$id
         }
       }else if (input$aoi_type == 'TFL'){
-        updateSelectizeInput(session,
-                             inputId = "selected_aoi",
-                             choices = unique(data.tsrTracker[data.tsrTracker$type == 'TFL', ]$aoi))
+        if(any(is.null(input$map_shape_click$id) & is.null(lastClickedAOI$aoi),input$map_shape_click$id == lastClickedAOI$aoi)){
+          updateSelectizeInput(session, inputId = "selected_aoi", selected = NULL,
+                               choices = unique(data.tsrTracker[data.tsrTracker$type == 'TFL', ]$aoi))
+        }else{
+          updateSelectizeInput(session, inputId = "selected_aoi",
+                               choices = input$map_shape_click$id, selected = input$map_shape_click$id)
+          lastClickedAOI$aoi <- input$map_shape_click$id
+        }
       } else{
-        updateSelectizeInput(session,
-                             inputId = "selected_aoi",
-                             choices = unique(data.tsrTracker$aoi))
+        if(any(is.null(input$map_shape_click$id) & is.null(lastClickedAOI$aoi),input$map_shape_click$id == lastClickedAOI$aoi)){
+          updateSelectizeInput(session, inputId = "selected_aoi", selected = NULL,
+                               choices = unique(data.tsrTracker$aoi))
+        }else{
+          updateSelectizeInput(session, inputId = "selected_aoi",
+                               choices = input$map_shape_click$id, selected = input$map_shape_click$id)
+          lastClickedAOI$aoi <- input$map_shape_click$id
+        }
       }
     })
 
@@ -110,30 +118,16 @@ mod_page_dashboard_server <- function(id, reportList){
 
     #Query the data
     selectAOI <-reactive({
-      #browser()
-      #input$map_shape_click
+
       data<-merge(data.tsrTracker,reportList()[["rationalization"]], by = c("aoi", "type"))
 
       if(is.null(input$selected_aoi)){
           if(input$aoi_type == 'TSA'){
-            if(is.null(input$map_shape_click)){
-              outSf<-data[data$type == 'TSA', ]
-            }else{
-              outSf<-data[data$aoi %in% input$map_shape_click$id,]
-            }
+            outSf<-data[data$type == 'TSA', ]
           }else if(input$aoi_type == 'TFL'){
-            if(is.null(input$map_shape_click)){
-              outSf<-data[data$type == 'TFL', ]
-            }else{
-              outSf<-data[data$aoi %in% input$map_shape_click$id,]
-            }
-
+            outSf<-data[data$type == 'TFL', ]
           }else{
-            if(is.null(input$map_shape_click)){
-              outSf<-data
-            }else{
-              outSf<-data[data$aoi %in% input$map_shape_click$id,]
-            }
+            outSf<-data
           }
         }else{
           outSf<-data[data$aoi %in% input$selected_aoi,]
