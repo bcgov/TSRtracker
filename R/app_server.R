@@ -9,6 +9,7 @@
 #' @import glue
 #' @import leaflet.extras
 #' @import data.table
+#' @import forcats
 #' @noRd
 app_server <- function(input, output, session) {
   # Your application server logic

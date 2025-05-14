@@ -23,6 +23,7 @@ RUN Rscript -e 'remotes::install_version("leaflet.extras2",upgrade="never", vers
 RUN Rscript -e 'remotes::install_version("leaflet.extras",upgrade="never", version = "2.0.1")'
 RUN Rscript -e 'remotes::install_version("golem",upgrade="never", version = "0.5.1")'
 RUN Rscript -e 'remotes::install_version("ggplot2",upgrade="never", version = "3.5.2")'
+RUN Rscript -e 'remotes::install_version("forcats",upgrade="never", version = "1.0.0")'
 RUN Rscript -e 'remotes::install_version("data.table",upgrade="never", version = "1.16.4")'
 RUN Rscript -e 'remotes::install_version("bsplus",upgrade="never", version = "0.1.5")'
 RUN mkdir /build_zone
@@ -35,3 +36,5 @@ COPY ./ /build_zone
 
 EXPOSE 3838
 CMD  ["R", "-e", "setwd('/build_zone'); options('shiny.port'=3838,shiny.host='0.0.0.0');library(TSRtracker);TSRtracker::run_app()"]
+
+
