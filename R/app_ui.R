@@ -33,7 +33,7 @@ app_ui <- function(request) {
         #introjsUI(),
         sidebarMenu(
           menuItem( "Dashboard", tabName = "dashboard",icon = icon("tachometer-alt")),
-          add_class(menuItem("Inputs", tabName = "user_inputs", icon = icon("cogs")), "user_inputs"),
+          add_class(menuItem("Workplan", tabName = "user_inputs", icon = icon("cogs")), "user_inputs"),
           add_class(menuItem("Rationalization", tabName = "rationalization", icon = icon("balance-scale")),  "rationalization"),
           add_class(menuItem("Generate Report", tabName = "report", icon = icon("file-pdf")), "report")
         )

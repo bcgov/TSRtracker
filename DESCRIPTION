@@ -31,6 +31,8 @@ Imports:
     shiny,
     shinycssloaders,
     shinydashboard,
+    tools,
+    vroom,
     xfun,
     xml2
 Suggests: 

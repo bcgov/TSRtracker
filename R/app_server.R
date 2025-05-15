@@ -51,7 +51,7 @@ app_server <- function(input, output, session) {
 
   observe({
     mod_page_dashboard_server("page_dashboard", reportList)
-    #mod_page_user_inputs_server("page_user_inputs")
+    mod_page_user_inputs_server("page_user_inputs")
   })
 
 
