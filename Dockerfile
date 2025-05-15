@@ -6,6 +6,7 @@ RUN R -e 'install.packages("remotes")'
 RUN Rscript -e 'remotes::install_version("glue",upgrade="never", version = "1.8.0")'
 RUN Rscript -e 'remotes::install_version("htmltools",upgrade="never", version = "0.5.8.1")'
 RUN Rscript -e 'remotes::install_version("DBI",upgrade="never", version = "1.2.3")'
+RUN Rscript -e 'remotes::install_version("vroom",upgrade="never", version = "1.6.5")'
 RUN Rscript -e 'remotes::install_version("xfun",upgrade="never", version = "0.52")'
 RUN Rscript -e 'remotes::install_version("scales",upgrade="never", version = "1.4.0")'
 RUN Rscript -e 'remotes::install_version("shiny",upgrade="never", version = "1.10.0")'
@@ -31,10 +32,8 @@ ADD . /build_zone
 WORKDIR /build_zone
 RUN R -e 'remotes::install_local(upgrade="never")'
 RUN rm -rf /build_zone
-
 COPY ./ /build_zone
 
 EXPOSE 3838
 CMD  ["R", "-e", "setwd('/build_zone'); options('shiny.port'=3838,shiny.host='0.0.0.0');library(TSRtracker);TSRtracker::run_app()"]
-
 
