@@ -21,7 +21,13 @@ mod_page_user_inputs_ui <- function(id) {
         )
       ),
       mainPanel(
-        DTOutput(ns("head"))
+        tabsetPanel(
+          tabPanel(title = "Gantt"
+          ),
+          tabPanel(title = "Workplan",
+                   DTOutput(ns("workplan"))
+          )
+        )
       )
     )
   )
@@ -33,19 +39,29 @@ mod_page_user_inputs_ui <- function(id) {
 mod_page_user_inputs_server <- function(id){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
-    data <- reactive({
-      req(input$upload)
 
+    workplan_rv <- reactiveValues(data = NULL)
+
+    observeEvent(input$upload, {
       ext <- tools::file_ext(input$upload$name)
-      switch(ext,
+      workplan_uploaded <- switch(ext,
              csv = vroom::vroom(input$upload$datapath, delim = ","),
              tsv = vroom::vroom(input$upload$datapath, delim = "\t"),
              validate("Invalid file; Please upload a .csv or .tsv file")
       )
+
+      workplan_rv$data<- workplan_uploaded
     })
 
-    output$head <- renderDT({
-      datatable( head(data(), 100), editable = TRUE)
+    output$workplan <- renderDT({
+      datatable( head(workplan_rv$data, 100), editable = TRUE)
+    })
+
+    observeEvent(input$workplan_cell_edit, {
+      browser()
+      row  <- input$workplan_cell_edit$row
+      clmn <- input$workplan_cell_edit$col
+      workplan_rv$data[row, clmn] <- as.Date(input$workplan_cell_edit$value, tryFormats = c("%Y-%m-%d", "%Y/%m/%d"))
     })
 
   })
