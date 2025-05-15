@@ -15,6 +15,7 @@ Imports:
     config,
     data.table,
     DBI,
+    DT,
     forcats,
     geojsonsf,
     ggplot2,

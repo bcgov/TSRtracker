@@ -9,6 +9,7 @@
 #' @importFrom shiny NS tagList
 #' @import xml2
 #' @import vroom
+#' @import DT
 
 mod_page_user_inputs_ui <- function(id) {
   ns <- NS(id)
@@ -16,13 +17,11 @@ mod_page_user_inputs_ui <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 4, position = "left",
         fluidRow(
-          fileInput(ns("upload"), NULL, accept = c(".csv", ".tsv")),
-          numericInput(ns("n"), "Rows", value = 5, min = 1, step = 1),
-          tableOutput(ns("head"))
+          fileInput(ns("upload"), NULL, accept = c(".csv", ".tsv"))
         )
       ),
       mainPanel(
-        tableOutput(ns("workplan"))
+        DTOutput(ns("head"))
       )
     )
   )
@@ -45,8 +44,8 @@ mod_page_user_inputs_server <- function(id){
       )
     })
 
-    output$head <- renderTable({
-      head(data(), input$n)
+    output$head <- renderDT({
+      datatable( head(data(), 100), editable = TRUE)
     })
 
   })
