@@ -6,7 +6,6 @@ RUN R -e 'install.packages("remotes")'
 RUN Rscript -e 'remotes::install_version("glue",upgrade="never", version = "1.8.0")'
 RUN Rscript -e 'remotes::install_version("htmltools",upgrade="never", version = "0.5.8.1")'
 RUN Rscript -e 'remotes::install_version("DBI",upgrade="never", version = "1.2.3")'
-RUN Rscript -e 'remotes::install_version("vroom",upgrade="never", version = "1.6.5")'
 RUN Rscript -e 'remotes::install_version("xfun",upgrade="never", version = "0.52")'
 RUN Rscript -e 'remotes::install_version("scales",upgrade="never", version = "1.4.0")'
 RUN Rscript -e 'remotes::install_version("shiny",upgrade="never", version = "1.10.0")'
@@ -25,6 +24,7 @@ RUN Rscript -e 'remotes::install_version("leaflet.extras",upgrade="never", versi
 RUN Rscript -e 'remotes::install_version("golem",upgrade="never", version = "0.5.1")'
 RUN Rscript -e 'remotes::install_version("ggplot2",upgrade="never", version = "3.5.2")'
 RUN Rscript -e 'remotes::install_version("forcats",upgrade="never", version = "1.0.0")'
+RUN Rscript -e 'remotes::install_version("DT",upgrade="never", version = "0.33")'
 RUN Rscript -e 'remotes::install_version("data.table",upgrade="never", version = "1.16.4")'
 RUN Rscript -e 'remotes::install_version("bsplus",upgrade="never", version = "0.1.5")'
 RUN mkdir /build_zone
@@ -36,4 +36,5 @@ COPY ./ /build_zone
 
 EXPOSE 3838
 CMD  ["R", "-e", "setwd('/build_zone'); options('shiny.port'=3838,shiny.host='0.0.0.0');library(TSRtracker);TSRtracker::run_app()"]
+
 

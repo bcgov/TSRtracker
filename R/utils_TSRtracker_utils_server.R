@@ -48,6 +48,50 @@ getSpatialQuery <- function(sql) {
   data
 }
 
+#' Set the results of a workplan upload to a PostgreSQL database
+#'
+#' @param sql The SQL query
+#'
+#' @return void
+#' @export
+setScheduleQuery<-function(wrkpln, reportList){
+  conn = getDbConnection()
+  DBI::dbExecute(conn,
+                 glue::glue("delete from tsrtracker_schedule where aoi = {single_quote(wrkpln$aoi[1])};"))
+  dbWriteTable(conn, name = c("public","tsrtracker_schedule"), value = wrkpln,append=TRUE,row.names=FALSE,overwrite=FALSE)
+  dbDisconnect(conn)
+
+  getReportList(reportList = reportList)
+}
+
+getReportList <- function(reportList) {
+  conn = getDbConnection()
+
+  data.rationalization<-getTableQuery(
+    sql = glue_sql(
+      "SELECT aoi, type, aac_year, area, s8_deadline,
+    in_progress, tsr_fn2025, aac, other_name, CURRENT_DATE,
+	EXTRACT(MONTH FROM AGE(s8_deadline, CURRENT_DATE)) +
+	EXTRACT(YEAR FROM AGE(s8_deadline, CURRENT_DATE))*12 as past_due
+	FROM tsrtracker_rationalization",
+      .con = conn
+    ),
+    conn = conn
+  )
+
+  data.schedule<-getTableQuery(
+    sql = glue_sql(
+      "SELECT * FROM tsrtracker_schedule",
+      .con = conn
+    ),
+    conn = conn
+  )
+
+  dbDisconnect(conn)
+  reportList$rationalization<-data.table(data.rationalization)
+  reportList$schedule<-data.table(data.schedule)
+}
+
 #' Get schema tables from information_schema database
 #'
 #' @param schema
@@ -113,7 +157,7 @@ pal <- colorNumeric(palette = "inferno", domain = c(50,10,0,-10,-50))
 #'
 #' @return list of data.frames containing workplan information
 #' @export
-get_word_docx <- function(word_doc) {
+getWordDocx <- function(word_doc) {
 
   tmpd <- tempdir()
   tmpf <- tempfile(tmpdir=tmpd, fileext=".zip")
@@ -130,7 +174,7 @@ get_word_docx <- function(word_doc) {
 
   tbls <- xml_find_all(doc, ".//w:tbl", ns=ns)
 
-  lapply(tbls, function(tbl) {
+  raw_tbls<-lapply(tbls, function(tbl) {
 
     cells <- xml_find_all(tbl, "./w:tr/w:tc", ns=ns)
     rows <- xml_find_all(tbl, "./w:tr", ns=ns)
@@ -139,10 +183,63 @@ get_word_docx <- function(word_doc) {
                              byrow=TRUE),
                       stringsAsFactors=FALSE)
     colnames(dat) <- dat[1,]
-    dat <- dat[-1,]
+    if(nrow(dat)<2) {
+      dat
+    }else{
+      dat <- dat[-1,]
+    }
     rownames(dat) <- NULL
     dat
 
   })
 
+  validate_workplan<- data.table(aoi = raw_tbls[[1]][[1]], analyst = raw_tbls[[7]][1,3],
+             project =c ("Start-Up Meeting",
+                         "Initial Engagement Letters",
+                         "Data Preparation",
+                         "Data Package",
+                         "Analysis",
+                         "Discussion Paper",
+                         "Rationale"),
+             task ="Milestone",
+             planned_date =c(raw_tbls[[3]][2,4],
+                             raw_tbls[[3]][10,4],
+                             raw_tbls[[7]][4,4],
+                             raw_tbls[[7]][7,4],
+                             raw_tbls[[7]][22,4],
+                             raw_tbls[[9]][4,4],
+                             raw_tbls[[11]][2,4]),
+             completion_date=c(raw_tbls[[3]][2,5],
+                               raw_tbls[[3]][10,5],
+                               raw_tbls[[7]][4,5],
+                               raw_tbls[[7]][7,5],
+                               raw_tbls[[7]][22,5],
+                               raw_tbls[[9]][4,5],
+                               raw_tbls[[11]][2,5]
+                               )
+             )
+
+  validate_workplan<-validate_workplan[, start_date:= as.Date(completion_date)][completion_date=='', start_date:= as.Date(planned_date)][, end_date:=start_date]
+  validate_workplan<-validate_workplan[, planned_date:=NULL][, completion_date:=NULL]
+
+  #Important dates
+  data_prep_milestone<-validate_workplan[project == "Data Preparation" & task == 'Milestone', ]$start_date
+  analysis_milestone<-validate_workplan[project == "Analysis" & task == 'Milestone', ]$start_date
+  discussion_paper_milestone<-validate_workplan[project == "Discussion Paper" & task == 'Milestone', ]$start_date
+
+  #Add in mock time lines
+  mock_workplan<-rbindlist(list(data.table(aoi = raw_tbls[[1]][[1]], analyst = raw_tbls[[7]][1,3], project ="Data Preparation",
+                                              task = c("write Up", "Constraints/Yields", "Review"),
+                                              start_date = c(data_prep_milestone-50, data_prep_milestone-100, data_prep_milestone-20),
+                                              end_date =c(data_prep_milestone, data_prep_milestone-50, data_prep_milestone-5)),
+                                   data.table(aoi = raw_tbls[[1]][[1]], analyst = raw_tbls[[7]][1,3], project ="Analysis",
+                                              task = c("Model building", "Finalize base-case", "sensitivities", "write Up"),
+                                              start_date = c(analysis_milestone-300,analysis_milestone-150, analysis_milestone-100, analysis_milestone-40),
+                                              end_date =c(analysis_milestone-200,analysis_milestone-100, analysis_milestone-30, analysis_milestone)),
+                                   data.table(aoi = raw_tbls[[1]][[1]], analyst = raw_tbls[[7]][1,3], project ="Discussion Paper",
+                                              task = c("Binder Prep", "Consultation", "Dry-run"),
+                                              start_date = c(discussion_paper_milestone-70,discussion_paper_milestone-60,discussion_paper_milestone-20),
+                                              end_date =c(discussion_paper_milestone-40,discussion_paper_milestone-20,discussion_paper_milestone-5))
+                                   ))
+  rbindlist(list(validate_workplan, mock_workplan))
 }

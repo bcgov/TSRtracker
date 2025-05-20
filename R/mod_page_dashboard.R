@@ -75,7 +75,7 @@ mod_page_dashboard_server <- function(id, reportList){
       valueBoxSpark(nrow(data.table(selectAOI())[in_progress=='Y',]), icon = icon("bars-progress") , subtitle = "In Progress", width = 2)
     })
     output$num_past_due <- renderValueBox({
-      valueBoxSpark(nrow(data.table(selectAOI())[past_due <0,]), icon = icon("thumbs-down"), subtitle = "Past Due", width =2)
+      valueBoxSpark(nrow(data.table(selectAOI())[past_due <0,]), icon = icon("triangle-exclamation"), subtitle = "Past Due", width =2)
     })
     output$num_upcoming <- renderValueBox({
       valueBoxSpark(nrow(data.table(selectAOI())[in_progress=='N',]), icon = icon("calendar"), subtitle = "Upcoming", width =2)
@@ -120,7 +120,7 @@ mod_page_dashboard_server <- function(id, reportList){
     #Query the data
     selectAOI <-reactive({
 
-      data<-merge(data.tsrTracker,reportList()[["rationalization"]], by = c("aoi", "type"))
+      data<-merge(data.tsrTracker, reportList$rationalization, by = c("aoi", "type"))
 
       if(is.null(input$selected_aoi)){
           if(input$aoi_type == 'TSA'){
@@ -194,25 +194,50 @@ mod_page_dashboard_server <- function(id, reportList){
                     )
     })
 
-    observeEvent(input$map_shape_click, {
-      message(paste0("clicked",input$map_shape_click ))
-    } )
-
     output$plotGantt <- renderPlot({
-      data<-data.table(reportList()[["schedule"]])
-      ggplot(data[!task == 'Milestone',], aes(x = start_date, xend = end_date, y = fct_rev(fct_inorder(task)),
-                                              yend = task, color = project, shape = project)) +
-        geom_segment(linewidth =10) +
-        labs(x = NULL, y = NULL) +
-        geom_point(data=data[task == 'Milestone',], aes(shape = project), size = 4) +
-        scale_shape_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=17,  'Data Preparation'=18,
-                                    'Data Package'=19, 'Analysis'=19,'Discussion Paper'=19, 'Rationale'=17)) +
-        scale_color_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=16,  'Data Preparation'=18,
-                                    'Data Package'=18, 'Analysis'=15, 'Discussion Paper'=19, 'Rationale'=19)) +
-        geom_hline(yintercept=unique(data$task), colour="grey80", linetype="dotted") +
-        geom_hline(yintercept='Milestone', colour="black", linetype="dashed") +
-        theme_gantt() +
-        theme(axis.text.x=element_text(angle=45, hjust=1), legend.title=element_blank())
+      if(!is.null(input$selected_aoi)){
+      data<-reportList$schedule[aoi %in% input$selected_aoi, ]
+        if(nrow(data) > 0){
+           ggplot(data[!task == 'Milestone',], aes(x = start_date, xend = end_date, y = fct_rev(fct_inorder(task)),
+                                                yend = task, color = project, shape = project)) +
+          geom_segment(linewidth =10) +
+          labs(x = NULL, y = NULL) +
+          geom_point(data=data[task == 'Milestone',], aes(shape = project), size = 4) +
+          scale_shape_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=17,  'Data Preparation'=18,
+                                      'Data Package'=19, 'Analysis'=19,'Discussion Paper'=19, 'Rationale'=17)) +
+          scale_color_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=16,  'Data Preparation'=18,
+                                      'Data Package'=18, 'Analysis'=15, 'Discussion Paper'=19, 'Rationale'=19)) +
+          geom_hline(yintercept=unique(data$task), colour="grey80", linetype="dotted") +
+          geom_hline(yintercept='Milestone', colour="black", linetype="dashed") +
+          theme_gantt() +
+          theme(axis.text.x=element_text(angle=45, hjust=1), legend.title=element_blank())
+        }else{
+          NULL
+        }
+      }else{
+
+        data<- switch(input$aoi_type,
+               Province = reportList$schedule,
+               TFL= reportList$schedule[aoi %in% reportList$rationalization[type == 'TFL',]$aoi, ],
+               TSA = reportList$schedule[aoi %in% reportList$rationalization[type == 'TSA',]$aoi, ],
+               validate("Invalid selection")
+               )
+
+        ggplot(data[!task == 'Milestone',], aes(x = start_date, xend = end_date, y = fct_rev(fct_inorder(task)),
+                                                yend = task, color = project, shape = project)) +
+          geom_segment(linewidth =10) +
+          labs(x = NULL, y = NULL) +
+          facet_wrap(~aoi, ncol =1)+
+          geom_point(data=data[task == 'Milestone',], aes(shape = project), size = 4) +
+          scale_shape_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=17,  'Data Preparation'=18,
+                                      'Data Package'=19, 'Analysis'=19,'Discussion Paper'=19, 'Rationale'=17)) +
+          scale_color_manual(values=c('Start-Up Meeting'=17, 'Initial Engagement Letters'=16,  'Data Preparation'=18,
+                                      'Data Package'=18, 'Analysis'=15, 'Discussion Paper'=19, 'Rationale'=19)) +
+          geom_hline(yintercept=unique(data$task), colour="grey80", linetype="dotted") +
+          geom_hline(yintercept='Milestone', colour="black", linetype="dashed") +
+          theme_gantt() +
+          theme(axis.text.x=element_text(angle=45, hjust=1), legend.title=element_blank())
+      }
 
     })
 

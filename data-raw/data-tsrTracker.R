@@ -5,6 +5,8 @@ tfl<-bcdata::bcdc_get_data("454f2153-efbd-4a6e-8966-a6d9755da9a6")
 tfl$aoi<-tfl$FOREST_FILE_ID
 tfl<-tfl["aoi"]
 tfl$type <- "TFL"
+tfl$aoi<-gsub("(TFL)", "\\1 \\2", tfl$aoi)
+
 tsa<-bcdata::bcdc_get_data("8daa29da-d7f4-401c-83ae-d962e3a28980")
 tsa$aoi<-tsa$TSA_NUMBER_DESCRIPTION
 tsa<-tsa["aoi"]
